@@ -547,12 +547,6 @@ function TypePool(busy, overview, setBox, onVC, cw, rh) {
   }
 
   var yModes = [
-    yByEvent("First Event", function(t) {
-      return t.proxedMinTime();
-    }, d3.descending),
-    yByEvent("Last Event", function(t) {
-      return t.proxedMaxTime();
-    }, d3.ascending),
     yByGroup("Groups (First)", function(t) {
       return t.proxedMinTime();
     }, function(a, b) {
@@ -562,7 +556,13 @@ function TypePool(busy, overview, setBox, onVC, cw, rh) {
       return t.proxedMaxTime();
     }, function(a, b) {
       return Math.max(a, b);
-    }, Number.NEGATIVE_INFINITY, d3.ascending)
+    }, Number.NEGATIVE_INFINITY, d3.ascending),
+    yByEvent("First Event", function(t) {
+      return t.proxedMinTime();
+    }, d3.descending),
+    yByEvent("Last Event", function(t) {
+      return t.proxedMaxTime();
+    }, d3.ascending)
   ];
   var yModeIx = 0;
   var yMode = yModes[0];

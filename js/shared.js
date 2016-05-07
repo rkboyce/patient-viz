@@ -593,8 +593,8 @@ function setupTypeView(pool, typeList) {
     return sortName(a, b);
   }
 
-  tView.addSort("Number", sortNum);
   tView.addSort("Name", sortName);
+  tView.addSort("Number", sortNum);
   var s = tView.addSort("Count", sortCount);
   tView.addSort("First", sortFirst);
 

@@ -64,12 +64,12 @@
   "shelve_id_files": [
     "db/ids.txt" 
   ],
-  "omop_user": "user",
-  "omop_passwd": "password",
+  "omop_user": "dikb",
+  "omop_passwd": "dikb",
   "omop_host": "localhost",
-  "omop_port": "5433",
-  "omop_db": "db",
-  "omop_schema": "schema",
+  "omop_port": "5432",
+  "omop_db": "dikb",
+  "omop_schema": "public",
   "omop_use_db": true,
   "omop_use_alt_hierarchies": true,
   "use_cache": true 

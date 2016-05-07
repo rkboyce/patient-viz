@@ -58,8 +58,10 @@ class OMOP():
             if 'ccs_proc' in settings:
                 self._codes['Procedure_ICD9CM'] = {}
                 self._parents['Procedure_ICD9CM'] = util.read_CCS(util.get_file(settings['ccs_proc'], debug_output), self._codes['Procedure_ICD9CM'])
-        self.schema = settings['omop_schema']
-        self.db = sqlalchemy.create_engine('{0}://{1}:{2}@{3}:{4}/{5}'.format(engine, username, password, host, port, database))
+        #self.schema = settings['omop_schema']
+        #self.db = sqlalchemy.create_engine('{0}://{1}:{2}@{3}:{4}/{5}'.format(engine, username, password, host, port, database))
+        self.schema = 'DIKB_DEV'
+        self.db = sqlalchemy.create_engine('oracle://DIKB_DEV:dbmi11di@130.49.206.154:1521/dbmi01'.format(engine, username, password, host, port, database))
 
     def _exec(self, query, **args):
         connection = None
@@ -219,10 +221,10 @@ WHERE person_id = :pid'''
                  cc.domain_id as c_desc_domain,
                  cc.vocabulary_id as c_desc_vocab
                 FROM
-                 {schema}.concept_ancestor as ca
-                LEFT JOIN {schema}.concept as c ON (
+                 {schema}.concept_ancestor ca
+                LEFT JOIN {schema}.concept c ON (
                  c.concept_id = ca.ancestor_concept_id
-                ) LEFT JOIN {schema}.concept as cc ON (
+                ) LEFT JOIN {schema}.concept cc ON (
                  cc.concept_id = ca.descendant_concept_id
                 ) WHERE
                  ca.descendant_concept_id != 0
@@ -268,8 +270,8 @@ WHERE person_id = :pid'''
             c.vocabulary_id as d_vocab,
             c.concept_code as d_num
            FROM
-            {schema}.condition_occurrence as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.condition_occurrence  o
+           LEFT JOIN {schema}.concept c ON (
             c.concept_id = o.condition_concept_id
            )
            WHERE
@@ -309,11 +311,11 @@ WHERE person_id = :pid'''
             c.concept_code as p_num,
             p.total_paid as p_cost
            FROM
-            {schema}.procedure_occurrence as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.procedure_occurrence  o
+           LEFT JOIN {schema}.concept c ON (
             c.concept_id = o.procedure_concept_id
            )
-           LEFT OUTER JOIN {schema}.procedure_cost as p ON (
+           LEFT OUTER JOIN {schema}.procedure_cost  p ON (
             p.procedure_occurrence_id = o.procedure_occurrence_id
            )
            WHERE
@@ -351,11 +353,11 @@ WHERE person_id = :pid'''
             c.vocabulary_id as o_vocab,
             c.concept_code as o_num
            FROM
-            {schema}.observation as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.observation o
+           LEFT JOIN {schema}.concept c ON (
             c.concept_id = o.observation_concept_id
            )
-           INNER JOIN {schema}.concept as c_val ON (
+           INNER JOIN {schema}.concept c_val ON (
 	    c_val.concept_id = o.value_as_concept_id
 	   )
            WHERE
@@ -390,8 +392,8 @@ WHERE person_id = :pid'''
             c.vocabulary_id as o_vocab,
             c.concept_code as o_num
            FROM
-            {schema}.observation as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.observation o
+           LEFT JOIN {schema}.concept c ON (
             c.concept_id = o.observation_concept_id
            )
            WHERE
@@ -426,8 +428,8 @@ WHERE person_id = :pid'''
             c.vocabulary_id as o_vocab,
             c.concept_code as o_num
            FROM
-            {schema}.observation as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.observation o
+           LEFT JOIN {schema}.concept c ON (
             c.concept_id = o.observation_concept_id
            )
            WHERE
@@ -463,11 +465,11 @@ WHERE person_id = :pid'''
             c.concept_code as m_num,
             p.total_paid as m_cost
            FROM
-            {schema}.drug_exposure as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.drug_exposure  o
+           LEFT JOIN {schema}.concept c ON (
             c.concept_id = o.drug_concept_id
            )
-           LEFT OUTER JOIN {schema}.drug_cost as p ON (
+           LEFT OUTER JOIN {schema}.drug_cost p ON (
             p.drug_exposure_id = o.drug_exposure_id
            )
            WHERE
@@ -514,8 +516,8 @@ WHERE person_id = :pid'''
             c.vocabulary_id as m_vocab,
             c.concept_code as m_num
            FROM
-            {schema}.measurement as o
-           LEFT JOIN {schema}.concept as c ON (
+            {schema}.measurement  o
+           LEFT JOIN {schema}.concept  c ON (
             c.concept_id = o.measurement_concept_id
            )
            WHERE
@@ -556,9 +558,9 @@ WHERE person_id = :pid'''
              v.visit_end_date as date_end,
              c.concept_name as c_name
             FROM
-             {schema}.visit_occurrence as v
-            LEFT JOIN {schema}.concept as c ON (
-             v.visit_concept_id = c.concept_id
+             {schema}.visit_occurrence v
+            LEFT JOIN {schema}.concept c ON (
+             v.place_of_service_concept_id = c.concept_id
             ) WHERE
              v.person_id = :pid
              AND c.concept_name IN ( {classes} )
