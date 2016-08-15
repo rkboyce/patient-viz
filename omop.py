@@ -24,6 +24,7 @@ gender_map = {
 color_map = {
     "Condition": "#4daf4a",
     "Drug": "#eb9adb",
+    "DrugEra": "#996633",
     "Measurement": "#80b1d3",
     "Observation": "#ccffff",
     "Procedure": "#ff7f00"
@@ -98,7 +99,7 @@ class OMOP():
             patients.add(str(prefix) + (str(r['person_id']) if not show_old_ids else str(r['person_source_value']) + '.json'))
 
     def get_person_id(self, pid):
-        query = "SELECT person_id FROM {schema}.person WHERE person_source_value = :pid"
+        query = "SELECT person_id FROM {schema}.person WHERE person_id = :pid"
         return str(self._exec_one(query, pid=pid)['person_id'])
 
     def add_info(self, obj, id, key, value, has_label = False, label = ""):
@@ -510,6 +511,46 @@ class OMOP():
                 obj['events'].append(event)
                 date_cur = util.nextDay(date_cur)
 
+    def get_drug_era(self, pid, obj, dict, new_dict_entries):
+        query = """SELECT
+            o.drug_era_id as id_row,
+            o.drug_era_start_date as date_start,
+            o.drug_era_end_date as date_end,
+            o.drug_concept_id as m_id,
+            c.domain_id as m_domain,
+            c.concept_name as m_name,
+            c.vocabulary_id as m_vocab,
+            c.concept_code as m_num
+           FROM
+            {schema}.drug_era as o
+           LEFT JOIN {schema}.concept as c ON (
+            c.concept_id = o.drug_concept_id
+           )
+           WHERE
+            o.person_id = :pid
+        """
+        for row in self._exec(query, pid=pid):
+            code = row['m_num']
+            unmapped = False
+            if code == 0:
+                code = row['m_orig']
+                unmapped = True
+            id_row = 'm' + str(row['id_row'])
+            d_id = row['m_id']
+            name = row['m_name']
+            vocab = row['m_vocab']
+            group = row['m_domain']
+            desc = "{0} ({1} {2})".format(name, vocab, code)
+            self.add_dict(dict, new_dict_entries, group, vocab, d_id, name, desc, code, unmapped)
+            date_start = self.to_time(row['date_start'])
+            date_end = self.to_time(row['date_end']) if row['date_end'] else date_start
+            date_cur = date_start
+            while date_cur <= date_end:
+                event = self.create_event(group, str(vocab) + str(d_id), id_row)
+                event['time'] = date_cur
+                obj['events'].append(event)
+                date_cur = util.nextDay(date_cur)
+
     def get_measurements(self, pid, obj, dict, new_dict_entries):
         query = """SELECT
             o.measurement_id as id_row,
@@ -605,6 +646,7 @@ class OMOP():
         self.get_observations_number_valued(pid, obj, dictionary, new_dict_entries)
         self.get_procedures(pid, obj, dictionary, new_dict_entries)
         self.get_drugs(pid, obj, dictionary, new_dict_entries)
+        self.get_drug_era(pid, obj, dictionary, new_dict_entries)
         self.get_measurements(pid, obj, dictionary, new_dict_entries)
         self.get_visits(pid, obj)
         min_time = float('inf')
