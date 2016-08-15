@@ -117,18 +117,24 @@ class OMOP():
         obj["info"].append(node)
 
     def get_info(self, pid, obj):
-        query = '''
-SELECT concept_name as gender_concept_name, 
-       person_source_value, 
-       year_of_birth 
-FROM person left outer join concept on gender_concept_id = concept_id
-WHERE person_id = :pid'''
+        query = """SELECT
+             concept_name as gender_concept_name,
+             person_source_value,
+             year_of_birth
+            FROM
+             {schema}.person
+            LEFT JOIN {schema}.concept ON (
+             gender_concept_id = concept_id
+            ) WHERE
+             person_id = :pid
+        """
         result = self._exec_one(query, pid=str(pid))
         if result['person_source_value']:
             self.add_info(obj, 'id_alt', 'ID', str(result['person_source_value']) + ".json")
         self.add_info(obj, 'born', 'Born', int(result['year_of_birth']))
         gender = str(result['gender_concept_name'])
-        self.add_info(obj, 'gender', 'Gender', gender_map.get(gender.upper(), 'U'), True, gender_label.get(gender, "default"))
+        # defaults to 'U' for "unknown"
+        self.add_info(obj, 'gender', 'Gender', gender_map.get(gender.upper(), 'U'), True, gender_label.get(gender, 'U'))
 
     def to_time(self, value):
         return util.toTime(value.strftime("%Y%m%d"))
@@ -287,7 +293,7 @@ WHERE person_id = :pid'''
             d_id = row['d_id']
             name = row['d_name']
             vocab = row['d_vocab']
-            group = row['d_domain']
+            group = "Condition" if row['d_domain'] is None else row['d_domain']
             desc = "{0} ({1} {2})".format(name, vocab, code)
             self.add_dict(dict, new_dict_entries, group, vocab, d_id, name, desc, code, unmapped)
             date_start = self.to_time(row['date_start'])
@@ -331,7 +337,7 @@ WHERE person_id = :pid'''
             d_id = row['p_id']
             name = row['p_name']
             vocab = row['p_vocab']
-            group = row['p_domain']
+            group = "Procedure" if row['p_domain'] is None else row['p_domain']
             desc = "{0} ({1} {2})".format(name, vocab, code)
             self.add_dict(dict, new_dict_entries, group, vocab, d_id, name, desc, code, unmapped)
             event = self.create_event(group, str(vocab) + str(d_id), id_row)
@@ -361,7 +367,8 @@ WHERE person_id = :pid'''
 	    c_val.concept_id = o.value_as_concept_id
 	   )
            WHERE
-            o.person_id = :pid AND o.value_as_concept_id is not null
+            o.person_id = :pid
+            AND o.value_as_concept_id IS NOT NULL
         """
         for row in self._exec(query, pid=pid):
             code = row['o_num']
@@ -397,7 +404,8 @@ WHERE person_id = :pid'''
             c.concept_id = o.observation_concept_id
            )
            WHERE
-            o.person_id = :pid AND o.value_as_string is not null
+            o.person_id = :pid
+            AND o.value_as_string IS NOT NULL
         """
         for row in self._exec(query, pid=pid):
             code = row['o_num']
@@ -433,7 +441,8 @@ WHERE person_id = :pid'''
             c.concept_id = o.observation_concept_id
            )
            WHERE
-            o.person_id = :pid AND o.value_as_number is not null
+            o.person_id = :pid
+            AND o.value_as_number IS NOT NULL
         """
         for row in self._exec(query, pid=pid):
             code = row['o_num']
@@ -485,7 +494,7 @@ WHERE person_id = :pid'''
             d_id = row['m_id']
             name = row['m_name']
             vocab = row['m_vocab']
-            group = row['m_domain']
+            group = "Drug" if row['m_domain'] is None else row['m_domain']
             desc = "{0} ({1} {2})".format(name, vocab, code)
             self.add_dict(dict, new_dict_entries, group, vocab, d_id, name, desc, code, unmapped)
             date_start = self.to_time(row['date_start'])
@@ -533,7 +542,7 @@ WHERE person_id = :pid'''
             d_id = row['m_id']
             name = row['m_name']
             vocab = row['m_vocab']
-            group = row['m_domain']
+            group = "Measurement" if row['m_domain'] is None else row['m_domain']
             lab_value = float(row['m_value']) if 'm_value' in row and row['m_value'] else row['m_orig_value']
             lab_low = float(row['m_low'])
             lab_high = float(row['m_high'])
